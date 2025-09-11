@@ -7,8 +7,9 @@ Tool to modify JSON files
 A **Tkinter-based GUI tool** to bulk update JSON files with multiple modes, including top-level object insertion, nested updates, and file-specific string updates. Also includes a revert option to restore backups.  
 
 ---
-First select target directory full of json files or subfolders full of json files
-Second select a json file full with new content (objects, arrays, strings) which we feed or modify depending on the mode used
+# Main selection steps
+- First select target directory full of json files or subfolders full of json files
+- Second select a json file full with new content (objects, arrays, strings) which we feed or modify depending on the mode used
 
 ## Features
 
