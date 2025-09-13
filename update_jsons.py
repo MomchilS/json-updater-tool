@@ -81,14 +81,15 @@ def add_nested(data, target_path, new_content):
         if isinstance(ref, dict) and k in ref:
             ref = ref[k]
         else:
-            return [], [target_path]  # target not found
+            # parent path missing entirely
+            return [], [target_path]
 
     last_key = keys[-1]
 
     if isinstance(ref, dict) and last_key in ref:
         target_ref = ref[last_key]
+
         if isinstance(target_ref, dict):
-            # Merge only at first level (no recursion)
             updated = []
             skipped = []
             for k, v in new_content.items():
@@ -97,14 +98,23 @@ def add_nested(data, target_path, new_content):
                     updated.append(f"{target_path}.{k}")
                 else:
                     skipped.append(f"{target_path}.{k}")
+            # ✅ skipped returned as "exists"
             return updated, skipped
+
         elif isinstance(target_ref, list):
             if isinstance(new_content, list):
                 target_ref.extend(new_content)
             else:
                 target_ref.append(new_content)
             return [f"{target_path}[]"], []
-    return [], [target_path]  # target not found or incompatible
+
+        else:
+            # Path exists but not dict/list → treat as "exists"
+            return [], [target_path]
+
+    else:
+        # last key missing
+        return [], [target_path]
 
 # ===========================================================
 # Mode 3: Update specific string values
@@ -125,7 +135,7 @@ def update_strings_in_file(data, target_path, new_content):
                     ref[last_key] = new_content[last_key]
                     return True
                 else:
-                    return False  # Already has same value
+                    return "exists"  # Already same value
     return False
 
 # ===========================================================
@@ -157,26 +167,24 @@ def run_update(json_dir, update_file, mode=1, target_path=None, filename_filter=
                 with open(filepath, "r", encoding="utf-8") as infile:
                     data = json.load(infile)
 
-                updated, skipped = [], []
+                updated, skipped_exists, skipped_not_found = [], [], []
 
                 if mode == 1:
-                    updated, skipped = add_top_level(data, update_content)
-                    skipped_exists = skipped
-                    skipped_not_found = []
+                    updated, skipped_exists = add_top_level(data, update_content)
+
                 elif mode == 2:
                     updated, skipped = add_nested(data, target_path, update_content)
-                    skipped_not_found = skipped
-                    skipped_exists = []
+                    # now skipped from add_nested means "exists"
+                    skipped_exists = skipped
+
                 elif mode == 3:
-                    success = update_strings_in_file(data, target_path, update_content)
-                    if success:
+                    status = update_strings_in_file(data, target_path, update_content)
+                    if status is True:
                         updated = [target_path]
-                        skipped_not_found = []
-                        skipped_exists = []
-                    else:
-                        updated = []
-                        skipped_not_found = []
+                    elif status == "exists":
                         skipped_exists = [target_path]
+                    else:
+                        skipped_not_found = [target_path]
 
                 # Write updated file
                 if updated:

@@ -40,7 +40,6 @@ class JSONUpdaterGUI:
         tk.Label(root, text="Target Path (dot notation):").grid(row=6, column=0, sticky="w", padx=5)
         self.target_entry = ttk.Combobox(root)
         self.target_entry.grid(row=7, column=0, padx=5, pady=5, sticky="ew")
-        # Bind key release for autocomplete
         self.target_entry.bind("<KeyRelease>", self.refresh_mode2_dropdown)
 
         # -------------------------------
@@ -91,12 +90,8 @@ class JSONUpdaterGUI:
         self.root.grid_columnconfigure(1, weight=1)
         self.root.grid_rowconfigure(14, weight=1)
 
-        # Set initial mode
         self.on_mode_change()
 
-    # -------------------------------
-    # Select JSON directory
-    # -------------------------------
     def select_json_dir(self):
         self.json_dir = filedialog.askdirectory()
         if self.json_dir:
@@ -104,17 +99,11 @@ class JSONUpdaterGUI:
             self.available_paths = scan_all_paths(self.json_dir)
             self.target_entry["values"] = self.available_paths
 
-    # -------------------------------
-    # Select update JSON file
-    # -------------------------------
     def select_update_file(self):
         self.update_file = filedialog.askopenfilename(filetypes=[("JSON Files", "*.json")])
         if self.update_file:
             self.log_message(f"📄 Update file selected: {self.update_file}\n", "info")
 
-    # -------------------------------
-    # Handle mode changes
-    # -------------------------------
     def on_mode_change(self):
         mode = self.mode_var.get()
         if mode == 1:
@@ -130,20 +119,11 @@ class JSONUpdaterGUI:
             self.filename_entry.config(state="normal")
             self.mode3_target_entry.config(state="normal")
 
-    # -------------------------------
-    # Mode 2 autocomplete dropdown
-    # -------------------------------
     def refresh_mode2_dropdown(self, event=None):
-        """
-        Autocomplete for Mode 2 dropdown.
-        Shows only immediate children one-level deep.
-        Does NOT force selection — user can keep typing freely.
-        """
         current = self.target_entry.get().strip()
         values = set()
 
         if not current:
-            # Show all root-level paths
             for path in self.available_paths:
                 if "." not in path:
                     values.add(path)
@@ -151,20 +131,14 @@ class JSONUpdaterGUI:
             for path in self.available_paths:
                 if current.endswith("."):
                     prefix = current[:-1]
-                    # Immediate children only
                     if path.startswith(prefix + ".") and path.count(".") == current.count("."):
                         values.add(path)
                 else:
                     if path.startswith(current) and path.count(".") == current.count("."):
                         values.add(path)
 
-            # Update combobox values
-                self.target_entry["values"] = sorted(values)
+        self.target_entry["values"] = sorted(values)
 
-
-    # -------------------------------
-    # Run update (all modes)
-    # -------------------------------
     def run_update_gui(self):
         if not self.json_dir or not self.update_file:
             messagebox.showerror("Error", "Please select JSON directory and update file first.")
@@ -190,9 +164,6 @@ class JSONUpdaterGUI:
         results = run_update(self.json_dir, self.update_file, mode, target_path, filename_filter)
         self.display_results(results)
 
-    # -------------------------------
-    # Revert from backup
-    # -------------------------------
     def run_revert_gui(self):
         backup_dir = filedialog.askdirectory(title="Select Backup Directory (older version)")
         if not backup_dir:
@@ -204,9 +175,6 @@ class JSONUpdaterGUI:
         results = run_revert(backup_dir, target_dir)
         self.display_results(results)
 
-    # -------------------------------
-    # Display results in log
-    # -------------------------------
     def display_results(self, results):
         self.log.insert("end", "\n=== Update Results ===\n", "info")
         self.log.insert("end", f"📊 Total files scanned: {results['scanned']}\n", "total")
@@ -217,28 +185,28 @@ class JSONUpdaterGUI:
             self.log.insert("end", f"   {f}\n", "success")
 
         # Not found
-        self.log.insert("\n⚠ Not affected - no target object found ({0}):\n".format(len(results['skipped_not_found'])), "notfound")
-        for f in results["skipped_not_found"]:
-            self.log.insert("end", f"   {f}\n", "notfound")
+        self.log.insert("end", f"\n⚠ Not affected - no target object found ({len(results['skipped_not_found'])}):\n", "notfound")
+        if results["skipped_not_found"]:
+            for f in results["skipped_not_found"]:
+                self.log.insert("end", f"   {f}\n", "notfound")
+        else:
+            self.log.insert("end", "   (none)\n", "notfound")
 
         # Already exists / same value
-        self.log.insert("\nℹ Not affected - already updated / same value ({0}):\n".format(len(results['skipped_exists'])), "exists")
-        for f in results["skipped_exists"]:
-            self.log.insert("end", f"   {f}\n", "exists")
+        self.log.insert("end", f"\nℹ Not affected - already updated / same value ({len(results['skipped_exists'])}):\n", "exists")
+        if results["skipped_exists"]:
+            for f in results["skipped_exists"]:
+                self.log.insert("end", f"   {f}\n", "exists")
+        else:
+            self.log.insert("end", "   (none)\n", "exists")
 
         self.log.insert("end", "\n=======================\n", "info")
         self.log.see("end")
 
-    # -------------------------------
-    # Logging helper
-    # -------------------------------
     def log_message(self, msg, tag="info"):
         self.log.insert("end", msg, tag)
         self.log.see("end")
 
-    # -------------------------------
-    # Help manual
-    # -------------------------------
     def show_help(self):
         help_text = (
             "📘 JSON Updater Tool Manual\n\n"
