@@ -45,3 +45,4 @@ A **Tkinter-based GUI tool** to bulk update JSON files with multiple modes, incl
 ---
 
 ## Screenshot in the folder displayed
+>>>>>>> 927c3f2b0c37f192b42dd04cffcd4272d7c6db27
